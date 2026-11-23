@@ -1,0 +1,127 @@
+Google One 一键下单工具（Pro 免费 / Ultra 促销）
+================================================
+
+【第一步：装环境（只需一次）】
+  双击  一键安装环境.bat
+    自动完成：
+      1. 检查 Python（需 3.10+）
+      2. 安装 frida 16.5.9（17.x 不能用，会自动降级）
+      3. 找 adb（环境变量 → PATH → MuMu 自带 → 都没有就自动下载 platform-tools）
+      4. 连接模拟器 + 跑自检
+    看到「环境自检通过」就可以往下走。
+
+
+【前提（缺一不可）】
+  1. MuMu 模拟器已启动，已登录目标 Google 账号
+  2. 该账号已绑定付款方式（卡）
+  3. 该账号没有任何现存 Google One 订阅（Ultra 促销必需）
+  4. Play 商店能正常打开（打不开就先重启模拟器）
+
+
+【双击顺序 · Pro（完全免费）】
+  0_环境自检.bat                  先跑，全绿再继续
+  1_查看offer列表.bat             查当前账号所有免费档（不下单，零风险）
+
+  2_Pro_免费12个月_第1步.bat       第 1 次：12 个月免费
+  3_Pro_免费叠加6个月_第2步.bat    第 2 次：+6 个月（累计 18）
+  4_Pro_免费叠加6个月_第3步.bat    第 3 次：+6 个月（累计 24）
+  5_Pro_免费备用6个月.bat          备用包（前三步成功后再用）
+
+  6_Pro_免费3个月_单开.bat         单独开 3 个月免费（不叠加，适合只想试用的号）
+
+  Pro 的免费档 SKU：
+    g1.2tb.ai.subs_variant   12months-eft / 6months-eft / 6months-eft-2 / ss-2026
+    g1.play.2tb.ai           eft-3mo
+
+  叠加原理（第 2/3/4 步自动执行）：
+    1. 从 Play 的 library.db 读出当前订阅的 purchaseToken
+    2. BillingFlowParams.SubscriptionUpdateParams
+         .setOldPurchaseToken(旧 token)
+         .setReplaceProrationMode(5)      // CHARGE_FULL_PRICE
+    3. 拉起收银台
+
+  叠加成功的收银台长这样：
+    即将扣款  今天 ¥0
+    546 天（包含根据您的当前方案所剩时间折算出的 364 天）
+    开始日期：2028年5月18日
+
+  如果显示「开始日期 = 当前到期日、当天就扣费」= 没走升级模式：
+    · 检查订阅是否「活跃」（已取消的订阅不给叠加）
+    · 检查是否漏了 --stack
+
+
+【双击顺序 · Ultra（付费促销，前 3 个月特价）】
+  10_查Ultra促销档.bat             一次查四个档（只查，不下单）
+
+  11_Ultra30TB_3个月1折_19.99.bat   ★最优：Ultra 30TB · 前 3 个月 $19.99
+  7_Ultra20TB_3个月1折_9.99.bat     Ultra 20TB · 前 3 个月 $9.99
+  8_Ultra20TB_3个月2折_19.99.bat    Ultra 20TB · 前 3 个月 $19.99
+  9_Ultra30TB_3个月2.5折_49.99.bat  Ultra 30TB · 前 3 个月 $49.99
+
+  | 档位          | SKU                                | 前3个月      | 第4个月起  | 3个月合计 |
+  |---------------|------------------------------------|--------------|-----------|-----------|
+  | Ultra 30TB 20x| g1.ai.ultra.3months_ip_90p.acq     | $19.99(1折)  | $199.99   | $59.97    |
+  | Ultra 20TB 5x | g1.20tb.3months_ip_90p             | $9.99(1折)   | $99.99    | $29.97    |
+  | Ultra 20TB 5x | g1.20tb.3months_ip_80p             | $19.99(2折)  | $99.99    | $59.97    |
+  | Ultra 30TB 20x| g1.ai.ultra.3months_ip_75p.acq     | $49.99(2.5折)| $199.99   | $149.97   |
+
+  弹窗正确长相（以 30TB 1折为例）：
+    Google AI Ultra (30 TB)
+      开始日期：今天          US$19.99/month
+      开始日期：2027年2月21日  US$199.99/month
+      [订阅]
+
+  硬条件：
+    * 账号必须没有任何 Google One 订阅
+      （有订阅的号查这些 SKU 会返回 code 6，不可用）
+    * 30TB 的 1 折档必须带 .acq 后缀（不带查不到）
+    * 每个账号每个档只能用一次
+    * 第 90 天前务必取消，否则按原价续费
+
+
+【参数说明】
+  --plan pro12 / pro6 / pro6b / pro6c / pro3
+      选择 Pro 的免费档（12 个月 / 6 个月 ×3 / 3 个月）
+  --stack
+      订阅升级叠加模式（第 2/3/4 步用），自动读旧 purchaseToken
+  --allow-paid
+      允许拉起付费促销 offer，并自动选「首期价最低」的那个
+  --sku <商品ID>
+      只查/只拉这一个 SKU
+  --mode <1-5>
+      替换模式：1=TIME_PRORATION 2=CHARGE_PRORATED_PRICE
+                3=WITHOUT_PRORATION 4=DEFERRED 5=CHARGE_FULL_PRICE
+
+
+【每一步之后要核对】
+  打开 play.google.com/store/account/subscriptions 看「下次付款日期」：
+    Pro 第 1 步后 → 12 个月后
+    Pro 第 2 步后 → 18 个月后
+    Pro 第 3 步后 → 24 个月后
+    Ultra 促销后  → 3 个月后（按原价）
+  日期往后推 = 成功，可以继续；没变 = 停手。
+
+
+【排错】
+  卡在 connecting
+      Play 商店没起来。脚本会自动拉起；仍失败就手动打开 Play 商店或重启模拟器。
+  弹窗显示「无法加载 / 重试」
+      Play 商店进程挂了（vending 为空）。从 MuMu 界面彻底关闭模拟器再启动。
+  查不到 offer（code 6）
+      这个号没有该档资格：多半是已有订阅，或地区不匹配。
+  您已订阅
+      该账号已有该档订阅，不能重复购买。
+  未连接到互联网
+      模拟器网络瞬断。等几秒重试；频繁出现就重启模拟器。
+  app_not_started
+      Google One 启动太慢。脚本会等最多 35 秒，仍失败就手动打开 App 再跑。
+  Invalid signature
+      网页端问题（网页结账不认 Android 的 token）。下单只能走本脚本。
+
+
+【注意】
+  · 脚本只弹收银台，不会替你点「订阅」
+  · Pro 的免费档到期前取消，否则按原价扣费
+  · Ultra 促销是付费的，第 90 天前取消
+  · 连续失败多次会触发风控，隔 24 小时再试
+  · 建议用额度较低的卡，万一忘记取消也扣不动
